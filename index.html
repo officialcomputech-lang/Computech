@@ -385,6 +385,7 @@ textarea.form-input{resize:vertical;min-height:60px;}
     <div class="modal-body">
       <div class="form-grid">
         <div><label class="form-label">Date of Joining</label><input type="date" id="adm-date" class="form-input"/></div>
+        <div><label class="form-label">Application No</label><div style="display:flex;align-items:center;"><span style="background:#f1f5f9;border:1.5px solid #e2e8f0;border-right:none;border-radius:8px 0 0 8px;padding:8px 10px;font-size:13px;font-weight:700;color:#64748b;white-space:nowrap;">CCE-2026-</span><input type="number" id="adm-enrol-num" class="form-input" placeholder="001" min="1" style="border-radius:0 8px 8px 0;border-left:none;width:80px;text-align:center;font-weight:800;" oninput="this.value=this.value.replace(/[^0-9]/g,'')"/></div></div>
         <div><label class="form-label">Full Name</label><input type="text" id="adm-name" class="form-input" placeholder="Student full name"/></div>
         <div><label class="form-label">Phone</label><input type="tel" id="adm-phone" class="form-input" placeholder="Phone number"/></div>
         <div><label class="form-label">Date of Birth</label><input type="date" id="adm-dob" class="form-input"/></div>
@@ -1929,6 +1930,7 @@ function openAdmitFromEnq(id){
   editingAdmId=null;
   document.getElementById("adm-modal-title").textContent="New Admission";
   document.getElementById("adm-date").value=todayStr();
+  document.getElementById("adm-enrol-num").value=ADMISSIONS.length+1;
   document.getElementById("adm-name").value=e.name;document.getElementById("adm-phone").value=e.phone;
   document.getElementById("adm-dob").value="";document.getElementById("adm-address").value=e.address||"";
   document.getElementById("adm-course").value=e.course;document.getElementById("adm-batch").value=e.batch||(BATCHES[0]?BATCHES[0].name:"");
@@ -1946,6 +1948,9 @@ function openNewAdm(){
   document.getElementById("adm-modal-title").textContent="New Admission";
   document.getElementById("adm-date").value=todayStr();
   ["adm-name","adm-phone","adm-dob","adm-address","adm-paid","adm-due"].forEach(id=>document.getElementById(id).value="");
+  // Auto-suggest next enrol number
+  const nextNum=String(ADMISSIONS.length+1).padStart(3,"0");
+  document.getElementById("adm-enrol-num").value=ADMISSIONS.length+1;
   document.getElementById("adm-course").value=COURSES[0].name;
   document.getElementById("adm-batch").value=BATCHES[0]?BATCHES[0].name:"";
   document.getElementById("adm-fee").value=COURSES[0].fee;
@@ -1957,6 +1962,8 @@ function openEditAdm(id){
   editingAdmId=id;
   document.getElementById("adm-modal-title").textContent="Edit Admission";
   document.getElementById("adm-date").value=a.date;document.getElementById("adm-name").value=a.name;
+  // Show existing enrol number suffix
+  const parts=a.enrollNo.split("-");document.getElementById("adm-enrol-num").value=parts[parts.length-1]||"";
   document.getElementById("adm-phone").value=a.phone;document.getElementById("adm-dob").value=a.dob||"";
   document.getElementById("adm-address").value=a.address||"";
   document.getElementById("adm-course").value=a.course;document.getElementById("adm-batch").value=a.batch;
@@ -1983,7 +1990,7 @@ function saveAdmission(){
   const balance=Math.max(0,fee-paid);
   const obj={date:document.getElementById("adm-date").value,name,phone,dob:document.getElementById("adm-dob").value,address:document.getElementById("adm-address").value.trim(),course:document.getElementById("adm-course").value,batch:document.getElementById("adm-batch").value,fee,paid,balance,dueDate:document.getElementById("adm-due").value,status:document.getElementById("adm-status").value};
   if(editingAdmId){const en=ADMISSIONS.find(x=>x.id===editingAdmId).enrollNo;const ua={...obj,id:editingAdmId,enrollNo:en};ADMISSIONS=ADMISSIONS.map(a=>a.id===editingAdmId?ua:a);fbSet('admissions',editingAdmId,ua);}
-  else{const yr=new Date().getFullYear();const num=String(ADMISSIONS.length+1).padStart(3,"0");const naid=Date.now();const en=`CCE-${yr}-${num}`;const na={...obj,id:naid,enrollNo:en};ADMISSIONS.push(na);fbSet('admissions',naid,na);ENQUIRIES=ENQUIRIES.map(e=>e.phone===phone?{...e,status:"Converted"}:e);ENQUIRIES.filter(e=>e.phone===phone).forEach(e=>fbSet('enquiries',e.id,{...e,status:"Converted"}));}
+  else{const enrolInput=document.getElementById("adm-enrol-num").value.trim();const num=enrolInput?String(enrolInput).padStart(3,"0"):String(ADMISSIONS.length+1).padStart(3,"0");const naid=Date.now();const en=`CCE-2026-${num}`;const na={...obj,id:naid,enrollNo:en};ADMISSIONS.push(na);fbSet('admissions',naid,na);ENQUIRIES=ENQUIRIES.map(e=>e.phone===phone?{...e,status:"Converted"}:e);ENQUIRIES.filter(e=>e.phone===phone).forEach(e=>fbSet('enquiries',e.id,{...e,status:"Converted"}));}
   closeModal("modal-adm");
   const R={admissions:renderAdmissions,balance:renderBalance,students:renderStudents,dashboard:renderDashboard,fees:renderFees,irregular:renderIrregular};
   if(R[activeTab])R[activeTab]();buildNav();
