@@ -383,25 +383,54 @@ textarea.form-input{resize:vertical;min-height:60px;}
   <div class="modal-box xl">
     <div class="modal-header"><h3 id="adm-modal-title">New Admission</h3><button class="modal-close" onclick="closeModal('modal-adm')">×</button></div>
     <div class="modal-body">
+
+      <!-- SECTION: Application Info -->
+      <div style="font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:1.5px;margin-bottom:8px;margin-top:2px;">APPLICATION INFO</div>
       <div class="form-grid">
         <div><label class="form-label">Date of Joining</label><input type="date" id="adm-date" class="form-input"/></div>
-        <div><label class="form-label">Application No</label><div style="display:flex;align-items:center;"><span style="background:#f1f5f9;border:1.5px solid #e2e8f0;border-right:none;border-radius:8px 0 0 8px;padding:8px 10px;font-size:13px;font-weight:700;color:#64748b;white-space:nowrap;">CCE-2026-</span><input type="number" id="adm-enrol-num" class="form-input" placeholder="001" min="1" style="border-radius:0 8px 8px 0;border-left:none;width:80px;text-align:center;font-weight:800;" oninput="this.value=this.value.replace(/[^0-9]/g,'')"/></div></div>
-        <div><label class="form-label">Full Name</label><input type="text" id="adm-name" class="form-input" placeholder="Student full name"/></div>
-        <div><label class="form-label">Phone</label><input type="tel" id="adm-phone" class="form-input" placeholder="Phone number"/></div>
+        <div><label class="form-label">Application No <span style="color:#ef4444">*</span></label>
+          <div style="display:flex;align-items:center;">
+            <span style="background:#f1f5f9;border:1.5px solid #e2e8f0;border-right:none;border-radius:8px 0 0 8px;padding:8px 10px;font-size:13px;font-weight:700;color:#64748b;white-space:nowrap;">CCE-2026-</span>
+            <input type="text" id="adm-enrol-num" class="form-input" placeholder="001" maxlength="10" style="border-radius:0 8px 8px 0;border-left:none;width:90px;text-align:center;font-weight:800;letter-spacing:1px;"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION: Student Details -->
+      <div style="font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:1.5px;margin:14px 0 8px;">STUDENT DETAILS</div>
+      <div class="form-grid">
+        <div><label class="form-label">Full Name <span style="color:#ef4444">*</span></label><input type="text" id="adm-name" class="form-input" placeholder="Student full name"/></div>
+        <div><label class="form-label">Phone <span style="color:#ef4444">*</span></label><input type="tel" id="adm-phone" class="form-input" placeholder="10-digit mobile"/></div>
         <div><label class="form-label">Date of Birth</label><input type="date" id="adm-dob" class="form-input"/></div>
+        <div><label class="form-label">Email ID</label><input type="email" id="adm-email" class="form-input" placeholder="student@email.com"/></div>
+        <div><label class="form-label">Nationality</label><input type="text" id="adm-nationality" class="form-input" placeholder="Indian" value="Indian"/></div>
+        <div><label class="form-label">Religion</label><input type="text" id="adm-religion" class="form-input" placeholder="e.g. Hindu, Muslim…"/></div>
+        <div><label class="form-label">Education Qualification</label><input type="text" id="adm-education" class="form-input" placeholder="e.g. SSLC, PUC, Degree…"/></div>
+        <div><label class="form-label">Status</label><select id="adm-status" class="form-select"><option>Active</option><option>Completed</option></select></div>
+        <div class="span2"><label class="form-label">Address</label><input type="text" id="adm-address" class="form-input" placeholder="Full address of student…"/></div>
+      </div>
+
+      <!-- SECTION: Father/Guardian -->
+      <div style="font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:1.5px;margin:14px 0 8px;">FATHER / GUARDIAN DETAILS</div>
+      <div class="form-grid">
+        <div><label class="form-label">Father/Guardian Name</label><input type="text" id="adm-guardian" class="form-input" placeholder="Father or Guardian name"/></div>
+        <div><label class="form-label">Guardian Mobile</label><input type="tel" id="adm-guardian-phone" class="form-input" placeholder="Guardian phone number"/></div>
+      </div>
+
+      <!-- SECTION: Course & Fee -->
+      <div style="font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:1.5px;margin:14px 0 8px;">COURSE & FEE</div>
+      <div class="form-grid">
         <div><label class="form-label">Course</label><select id="adm-course" class="form-select" onchange="onAdmCourseChange()"></select></div>
         <div><label class="form-label">Batch</label><select id="adm-batch" class="form-select"><option value="">-- Select Batch --</option></select></div>
         <div><label class="form-label">Course Fee (₹)</label><input type="number" id="adm-fee" class="form-input" oninput="calcBalance()"/></div>
         <div><label class="form-label">Amount Paid (₹)</label><input type="number" id="adm-paid" class="form-input" placeholder="0" oninput="calcBalance()"/></div>
         <div><label class="form-label">Balance (Auto)</label><div id="adm-bal-disp" style="background:#fef2f2;border:1.5px solid #fca5a544;border-radius:8px;padding:8px 11px;font-size:14px;color:#dc2626;font-weight:800;">₹0</div></div>
         <div><label class="form-label">Fee Due Date</label><input type="date" id="adm-due" class="form-input"/></div>
-        <div><label class="form-label">Status</label><select id="adm-status" class="form-select"><option>Active</option><option>Completed</option></select></div>
-        <div></div>
-        <div class="span2"><label class="form-label">Address</label><input type="text" id="adm-address" class="form-input" placeholder="Full address of student…"/></div>
       </div>
+
       <div class="modal-footer">
         <button class="btn btn-outline" onclick="closeModal('modal-adm')">Cancel</button>
-        <button class="btn btn-success" onclick="saveAdmission()">Save Admission</button>
+        <button class="btn btn-success" onclick="saveAdmission()">💾 Save Admission</button>
       </div>
     </div>
   </div>
@@ -1947,7 +1976,8 @@ function openNewAdm(){
   editingAdmId=null;
   document.getElementById("adm-modal-title").textContent="New Admission";
   document.getElementById("adm-date").value=todayStr();
-  ["adm-name","adm-phone","adm-dob","adm-address","adm-paid","adm-due"].forEach(id=>document.getElementById(id).value="");
+  ["adm-name","adm-phone","adm-dob","adm-address","adm-paid","adm-due","adm-email","adm-religion","adm-education","adm-guardian","adm-guardian-phone"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("adm-nationality").value="Indian";
   // Auto-suggest next enrol number
   const nextNum=String(ADMISSIONS.length+1).padStart(3,"0");
   document.getElementById("adm-enrol-num").value=ADMISSIONS.length+1;
@@ -1961,14 +1991,24 @@ function openEditAdm(id){
   const a=ADMISSIONS.find(x=>x.id===id);if(!a)return;
   editingAdmId=id;
   document.getElementById("adm-modal-title").textContent="Edit Admission";
-  document.getElementById("adm-date").value=a.date;document.getElementById("adm-name").value=a.name;
-  // Show existing enrol number suffix
+  document.getElementById("adm-date").value=a.date;
+  document.getElementById("adm-name").value=a.name;
   const parts=a.enrollNo.split("-");document.getElementById("adm-enrol-num").value=parts[parts.length-1]||"";
-  document.getElementById("adm-phone").value=a.phone;document.getElementById("adm-dob").value=a.dob||"";
+  document.getElementById("adm-phone").value=a.phone;
+  document.getElementById("adm-dob").value=a.dob||"";
+  document.getElementById("adm-email").value=a.email||"";
+  document.getElementById("adm-nationality").value=a.nationality||"Indian";
+  document.getElementById("adm-religion").value=a.religion||"";
+  document.getElementById("adm-education").value=a.education||"";
+  document.getElementById("adm-guardian").value=a.guardian||"";
+  document.getElementById("adm-guardian-phone").value=a.guardianPhone||"";
   document.getElementById("adm-address").value=a.address||"";
-  document.getElementById("adm-course").value=a.course;document.getElementById("adm-batch").value=a.batch;
-  document.getElementById("adm-fee").value=a.fee;document.getElementById("adm-paid").value=a.paid;
-  document.getElementById("adm-due").value=a.dueDate||"";document.getElementById("adm-status").value=a.status;
+  document.getElementById("adm-course").value=a.course;
+  document.getElementById("adm-batch").value=a.batch;
+  document.getElementById("adm-fee").value=a.fee;
+  document.getElementById("adm-paid").value=a.paid;
+  document.getElementById("adm-due").value=a.dueDate||"";
+  document.getElementById("adm-status").value=a.status;
   calcBalance();openModal("modal-adm");
 }
 function onAdmCourseChange(){
@@ -1988,7 +2028,23 @@ function saveAdmission(){
   if(!name||!phone){alert("Name and phone required.");return;}
   const fee=Number(document.getElementById("adm-fee").value)||0;const paid=Number(document.getElementById("adm-paid").value)||0;
   const balance=Math.max(0,fee-paid);
-  const obj={date:document.getElementById("adm-date").value,name,phone,dob:document.getElementById("adm-dob").value,address:document.getElementById("adm-address").value.trim(),course:document.getElementById("adm-course").value,batch:document.getElementById("adm-batch").value,fee,paid,balance,dueDate:document.getElementById("adm-due").value,status:document.getElementById("adm-status").value};
+  const obj={
+    date:document.getElementById("adm-date").value,
+    name,phone,
+    dob:document.getElementById("adm-dob").value,
+    email:document.getElementById("adm-email").value.trim(),
+    nationality:document.getElementById("adm-nationality").value.trim(),
+    religion:document.getElementById("adm-religion").value.trim(),
+    education:document.getElementById("adm-education").value.trim(),
+    guardian:document.getElementById("adm-guardian").value.trim(),
+    guardianPhone:document.getElementById("adm-guardian-phone").value.trim(),
+    address:document.getElementById("adm-address").value.trim(),
+    course:document.getElementById("adm-course").value,
+    batch:document.getElementById("adm-batch").value,
+    fee,paid,balance,
+    dueDate:document.getElementById("adm-due").value,
+    status:document.getElementById("adm-status").value
+  };
   if(editingAdmId){const en=ADMISSIONS.find(x=>x.id===editingAdmId).enrollNo;const ua={...obj,id:editingAdmId,enrollNo:en};ADMISSIONS=ADMISSIONS.map(a=>a.id===editingAdmId?ua:a);fbSet('admissions',editingAdmId,ua);}
   else{const enrolInput=document.getElementById("adm-enrol-num").value.trim();const num=enrolInput?String(enrolInput).padStart(3,"0"):String(ADMISSIONS.length+1).padStart(3,"0");const naid=Date.now();const en=`CCE-2026-${num}`;const na={...obj,id:naid,enrollNo:en};ADMISSIONS.push(na);fbSet('admissions',naid,na);ENQUIRIES=ENQUIRIES.map(e=>e.phone===phone?{...e,status:"Converted"}:e);ENQUIRIES.filter(e=>e.phone===phone).forEach(e=>fbSet('enquiries',e.id,{...e,status:"Converted"}));}
   closeModal("modal-adm");
