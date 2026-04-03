@@ -279,7 +279,7 @@ textarea.form-input{resize:vertical;min-height:60px;}
     <img id="kiosk-logo-img" class="kiosk-logo" src="" alt=""/>
     <div class="kiosk-title">📅 Mark Attendance</div>
     <div class="kiosk-sub">COMPUTECH COMPUTER EDUCATION CENTER</div>
-    <input type="text" class="kiosk-input" id="kiosk-input" placeholder="CCE-2025-001" autocomplete="off" autocapitalize="characters" onkeydown="if(event.key==='Enter')kioskPunch()" oninput="this.value=this.value.toUpperCase()"/>
+    <input type="text" class="kiosk-input" id="kiosk-input" placeholder="e.g. 007" autocomplete="off" autocapitalize="characters" onkeydown="if(event.key==='Enter')kioskPunch()" oninput="this.value=this.value.toUpperCase()"/>
     <div style="font-size:12px;color:#94a3b8;margin-top:8px;">Type your Application Number and press Mark</div>
     <button class="kiosk-btn" onclick="kioskPunch()">✅ Mark Attendance</button>
     <div id="kiosk-result" class="kiosk-result"></div>
@@ -420,9 +420,15 @@ textarea.form-input{resize:vertical;min-height:60px;}
       <!-- SECTION: Course & Fee -->
       <div style="font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:1.5px;margin:14px 0 8px;">COURSE & FEE</div>
       <div class="form-grid">
-        <div><label class="form-label">Course</label><select id="adm-course" class="form-select" onchange="onAdmCourseChange()"></select></div>
+        <div><label class="form-label">Primary Course</label><select id="adm-course" class="form-select" onchange="onAdmCourseChange()"></select></div>
         <div><label class="form-label">Batch</label><select id="adm-batch" class="form-select"><option value="">-- Select Batch --</option></select></div>
-        <div><label class="form-label">Course Fee (₹)</label><input type="number" id="adm-fee" class="form-input" oninput="calcBalance()"/></div>
+        <div class="span2"><label class="form-label">Additional Course (optional)</label><select id="adm-course2" class="form-select" onchange="onAdmCourseChange()"><option value="">-- None (single course) --</option></select></div>
+      </div>
+      <div class="form-grid" style="margin-top:10px;">
+        <div><label class="form-label">Application Fee (₹)</label><input type="number" id="adm-appfee" class="form-input" placeholder="100" value="100" oninput="calcBalance()"/></div>
+        <div><label class="form-label">Course Fee (₹) <span style="font-size:10px;color:#94a3b8;">(auto from courses)</span></label><input type="number" id="adm-fee" class="form-input" oninput="calcBalance()"/></div>
+        <div><label class="form-label">Discount (₹)</label><input type="number" id="adm-discount" class="form-input" placeholder="0" value="0" oninput="calcBalance()"/></div>
+        <div><label class="form-label">Total Fee (₹) <span style="font-size:10px;color:#94a3b8;">(after discount)</span></label><div id="adm-total-disp" style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:8px;padding:8px 11px;font-size:14px;color:#1d4ed8;font-weight:800;">₹0</div></div>
         <div><label class="form-label">Amount Paid (₹)</label><input type="number" id="adm-paid" class="form-input" placeholder="0" oninput="calcBalance()"/></div>
         <div><label class="form-label">Balance (Auto)</label><div id="adm-bal-disp" style="background:#fef2f2;border:1.5px solid #fca5a544;border-radius:8px;padding:8px 11px;font-size:14px;color:#dc2626;font-weight:800;">₹0</div></div>
         <div><label class="form-label">Fee Due Date</label><input type="date" id="adm-due" class="form-input"/></div>
@@ -786,8 +792,17 @@ function pb(pct,col){return `<div class="prog-wrap"><div class="prog-bar" style=
 function pcol(p){return p>=100?"#16a34a":p>70?"#d97706":"#3b82f6";}
 
 function getAbsenceDays(enrollNo, lastNDays=14){
+  const adm=ADMISSIONS.find(a=>a.enrollNo===enrollNo);
+  const admDate=adm?new Date(adm.date):null;
   const today=new Date(); const dates=[];
-  for(let i=1;i<=lastNDays;i++){const d=new Date(today);d.setDate(d.getDate()-i);dates.push(d.toISOString().slice(0,10));}
+  for(let i=1;i<=lastNDays;i++){
+    const d=new Date(today);d.setDate(d.getDate()-i);
+    // Only count days AFTER the student joined
+    if(admDate&&d<admDate) continue;
+    // Skip Sundays (day 0)
+    if(d.getDay()===0) continue;
+    dates.push(d.toISOString().slice(0,10));
+  }
   return dates.filter(d=>!ATTENDANCE.find(a=>a.enrollNo===enrollNo&&a.date===d)).length;
 }
 
@@ -840,6 +855,12 @@ function populateCourseSelects(){
     if(el)el.innerHTML=COURSES.map(c=>`<option>${c.name}</option>`).join("");
   });
   populateBatchSelects();
+  const sel2=document.getElementById("adm-course2");
+  if(sel2){
+    const cur2=sel2.value;
+    sel2.innerHTML='<option value="">-- None (single course) --</option>'+COURSES.map(c=>`<option value="${c.name}">${c.name} — ₹${c.fee.toLocaleString('en-IN')}</option>`).join('');
+    sel2.value=cur2;
+  }
 }
 function populateBatchSelects(){
   const activeBatches=BATCHES.filter(b=>b.active);
@@ -1042,7 +1063,7 @@ function renderAdmissions(){
   const filtered=ADMISSIONS.filter(a=>(admFilterState==="All"||a.status===admFilterState)&&(a.name.toLowerCase().includes(admSearch.toLowerCase())||a.phone.includes(admSearch)||a.enrollNo.toLowerCase().includes(admSearch.toLowerCase()))).sort((a,b)=>b.id-a.id);
   const rows=filtered.map(a=>`
     <tr>
-      <td class="td-pri">${a.enrollNo}</td><td class="td-b">${esc(a.name)}</td>
+      <td class="td-pri">${a.enrollNo}</td><td class="td-m" style="font-size:11px;">${fmtDate(a.date)}</td><td class="td-b">${esc(a.name)}</td>
       <td style="font-size:12px;">${a.phone}</td><td class="td-m">${a.dob||"—"}</td>
       <td style="font-size:12px;">${esc(a.course)}</td><td class="td-m">${a.batch}</td>
       <td class="td-m" style="font-size:11px;max-width:130px;">${esc(a.address)||"—"}</td>
@@ -1070,7 +1091,7 @@ function renderAdmissions(){
   </div>
   <div class="card table-wrap">
     <table class="data-table" style="min-width:1100px;">
-      <thead><tr><th>Enrol No</th><th>Name</th><th>Phone</th><th>DOB</th><th>Course</th><th>Batch</th><th>Address</th><th>Fee</th><th>Paid</th><th>Balance</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
+      <thead><tr><th>Enrol No</th><th>Date</th><th>Name</th><th>Phone</th><th>DOB</th><th>Course</th><th>Batch</th><th>Address</th><th>Fee</th><th>Paid</th><th>Balance</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
   </div>`;
@@ -1219,7 +1240,7 @@ function renderAttendance(){
     const statusText=todayRec?(todayRec.punchOut?`✅ Out ${todayRec.punchOut}`:`🟢 In ${todayRec.punchIn}`):"🔴 Absent";
     const statusCol=todayRec?todayRec.punchOut?"#0d9488":"#16a34a":"#dc2626";
     return `<tr>
-      <td class="td-pri">${a.enrollNo}</td><td class="td-b">${esc(a.name)}</td>
+      <td class="td-pri">${a.enrollNo}</td><td class="td-m" style="font-size:11px;">${fmtDate(a.date)}</td><td class="td-b">${esc(a.name)}</td>
       <td style="font-size:12px;">${esc(a.course)}</td><td>${a.batch}</td>
       <td>${dots}</td>
       <td><span style="font-size:12px;font-weight:700;color:${statusCol};">${statusText}</span></td>
@@ -1249,7 +1270,7 @@ function renderAttendance(){
     <!-- Live Punch Entry Panel -->
     <div class="att-scanner" style="display:flex;flex-direction:column;justify-content:center;">
       <div style="font-size:12px;color:rgba(255,255,255,.55);font-weight:700;letter-spacing:.8px;margin-bottom:8px;">STUDENT ENTERS APP NUMBER AFTER SCANNING QR</div>
-      <input type="text" class="att-input-big" id="att-scan-input" placeholder="App No — e.g. CCE-2025-001" autocomplete="off" onkeydown="if(event.key==='Enter')punchAttendance()" style="text-transform:uppercase;"/>
+      <input type="text" class="att-input-big" id="att-scan-input" placeholder="Last digits e.g. 007 or CCE-2026-007" autocomplete="off" onkeydown="if(event.key==='Enter')punchAttendance()" style="text-transform:uppercase;"/>
       <div style="margin-top:12px;display:flex;gap:10px;justify-content:center;">
         <button class="btn btn-success" onclick="punchAttendance()" style="font-size:14px;padding:10px 28px;">✅ Mark Attendance</button>
         <button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,.3);" onclick="document.getElementById('att-scan-input').value='';document.getElementById('att-result').innerHTML='';">Clear</button>
@@ -1362,7 +1383,14 @@ function punchAttendance(){
   const val=document.getElementById("att-scan-input").value.trim().toUpperCase();
   const el=document.getElementById("att-result");
   if(!val){el.innerHTML=`<div class="att-error"><b>Please enter your Application Number</b></div>`;return;}
-  const student=ADMISSIONS.find(a=>a.enrollNo.toUpperCase()===val);
+  // Accept full app no OR just last digits (e.g. "007" or "7" matches CCE-2026-007)
+  const student=ADMISSIONS.find(a=>{
+    const full=a.enrollNo.toUpperCase();
+    if(full===val) return true;
+    const parts=full.split('-');
+    const last=parts[parts.length-1];
+    return last===val||last===val.padStart(3,'0')||String(parseInt(last))===String(parseInt(val));
+  });
   if(!student){el.innerHTML=`<div class="att-error"><b>❌ Not found:</b> ${esc(val)}<br/><span style="font-size:12px;">Check your App No on your admit card (e.g. CCE-2025-001)</span></div>`;return;}
   const today=todayStr();const now=nowTime();
   const existing=ATTENDANCE.find(a=>a.enrollNo===student.enrollNo&&a.date===today);
@@ -1714,7 +1742,7 @@ function renderFees(){
   const totalRev=ADMISSIONS.reduce((s,a)=>s+a.paid,0);
   const pendingFee=ADMISSIONS.reduce((s,a)=>s+a.balance,0);
   const rows=ADMISSIONS.map(a=>`<tr>
-    <td class="td-pri">${a.enrollNo}</td><td class="td-b">${esc(a.name)}</td><td class="td-m">${esc(a.course)}</td>
+    <td class="td-pri">${a.enrollNo}</td><td class="td-m" style="font-size:11px;">${fmtDate(a.date)}</td><td class="td-b">${esc(a.name)}</td><td class="td-m">${esc(a.course)}</td>
     <td>${fmt(a.fee)}</td><td class="td-ok">${fmt(a.paid)}</td>
     <td style="font-weight:700;color:${a.balance>0?"#dc2626":"#16a34a"}">${a.balance>0?fmt(a.balance):"✓ Clear"}</td>
     <td>${a.dueDate?fmtDate(a.dueDate):"—"}</td><td>${statusBadge(a.status)}</td>
@@ -1977,6 +2005,8 @@ function openNewAdm(){
   document.getElementById("adm-modal-title").textContent="New Admission";
   document.getElementById("adm-date").value=todayStr();
   ["adm-name","adm-phone","adm-dob","adm-address","adm-paid","adm-due","adm-email","adm-religion","adm-education","adm-guardian","adm-guardian-phone"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("adm-discount").value="0";
+  document.getElementById("adm-appfee").value="100";
   document.getElementById("adm-nationality").value="Indian";
   // Auto-suggest next enrol number
   const nextNum=String(ADMISSIONS.length+1).padStart(3,"0");
@@ -2013,21 +2043,33 @@ function openEditAdm(id){
 }
 function onAdmCourseChange(){
   if(editingAdmId)return;
-  const c=COURSES.find(c=>c.name===document.getElementById("adm-course").value);
-  if(c)document.getElementById("adm-fee").value=c.fee;calcBalance();
+  const c1=COURSES.find(c=>c.name===document.getElementById("adm-course").value);
+  const c2=COURSES.find(c=>c.name===document.getElementById("adm-course2")?.value);
+  const total=(c1?c1.fee:0)+(c2?c2.fee:0);
+  document.getElementById("adm-fee").value=total||"";
+  calcBalance();
 }
 function calcBalance(){
   const fee=Number(document.getElementById("adm-fee").value)||0;
+  const appfee=Number(document.getElementById("adm-appfee")?.value)||100;
+  const discount=Number(document.getElementById("adm-discount")?.value)||0;
+  const total=Math.max(0,(fee+appfee)-discount);
   const paid=Number(document.getElementById("adm-paid").value)||0;
-  const bal=fee-paid;
+  const bal=Math.max(0,total-paid);
+  const td=document.getElementById("adm-total-disp");
+  if(td){td.textContent=fmt(total);td.style.color=total>0?"#1d4ed8":"#16a34a";}
   document.getElementById("adm-bal-disp").textContent=bal<=0?"✓ FULLY PAID":fmt(bal);
   document.getElementById("adm-bal-disp").style.color=bal<=0?"#16a34a":"#dc2626";
 }
 function saveAdmission(){
   const name=document.getElementById("adm-name").value.trim();const phone=document.getElementById("adm-phone").value.trim();
   if(!name||!phone){alert("Name and phone required.");return;}
-  const fee=Number(document.getElementById("adm-fee").value)||0;const paid=Number(document.getElementById("adm-paid").value)||0;
-  const balance=Math.max(0,fee-paid);
+  const fee=Number(document.getElementById("adm-fee").value)||0;
+  const appfee=Number(document.getElementById("adm-appfee")?.value)||100;
+  const discount=Number(document.getElementById("adm-discount")?.value)||0;
+  const totalFee=Math.max(0,(fee+appfee)-discount);
+  const paid=Number(document.getElementById("adm-paid").value)||0;
+  const balance=Math.max(0,totalFee-paid);
   const obj={
     date:document.getElementById("adm-date").value,
     name,phone,
@@ -2041,11 +2083,20 @@ function saveAdmission(){
     address:document.getElementById("adm-address").value.trim(),
     course:document.getElementById("adm-course").value,
     batch:document.getElementById("adm-batch").value,
-    fee,paid,balance,
+    appFee:Number(document.getElementById("adm-appfee")?.value)||100,
+    discount:Number(document.getElementById("adm-discount")?.value)||0,
+    course2:document.getElementById("adm-course2")?.value||"",
+    fee:totalFee,paid,balance,
     dueDate:document.getElementById("adm-due").value,
     status:document.getElementById("adm-status").value
   };
-  if(editingAdmId){const en=ADMISSIONS.find(x=>x.id===editingAdmId).enrollNo;const ua={...obj,id:editingAdmId,enrollNo:en};ADMISSIONS=ADMISSIONS.map(a=>a.id===editingAdmId?ua:a);fbSet('admissions',editingAdmId,ua);}
+  if(editingAdmId){
+    const enrolInput=document.getElementById("adm-enrol-num").value.trim();
+    const en=enrolInput?`CCE-2026-${String(enrolInput).padStart(3,"0")}`:ADMISSIONS.find(x=>x.id===editingAdmId).enrollNo;
+    const ua={...obj,id:editingAdmId,enrollNo:en};
+    ADMISSIONS=ADMISSIONS.map(a=>a.id===editingAdmId?ua:a);
+    fbSet('admissions',editingAdmId,ua);
+  }
   else{const enrolInput=document.getElementById("adm-enrol-num").value.trim();const num=enrolInput?String(enrolInput).padStart(3,"0"):String(ADMISSIONS.length+1).padStart(3,"0");const naid=Date.now();const en=`CCE-2026-${num}`;const na={...obj,id:naid,enrollNo:en};ADMISSIONS.push(na);fbSet('admissions',naid,na);ENQUIRIES=ENQUIRIES.map(e=>e.phone===phone?{...e,status:"Converted"}:e);ENQUIRIES.filter(e=>e.phone===phone).forEach(e=>fbSet('enquiries',e.id,{...e,status:"Converted"}));}
   closeModal("modal-adm");
   const R={admissions:renderAdmissions,balance:renderBalance,students:renderStudents,dashboard:renderDashboard,fees:renderFees,irregular:renderIrregular};
@@ -2649,7 +2700,14 @@ function kioskPunch(){
   }
 
   // Find student in loaded ADMISSIONS
-  const student=ADMISSIONS.find(a=>a.enrollNo.toUpperCase()===val);
+  // Accept full app no OR just last digits (e.g. "007" or "7" matches CCE-2026-007)
+  const student=ADMISSIONS.find(a=>{
+    const full=a.enrollNo.toUpperCase();
+    if(full===val) return true;
+    const parts=full.split('-');
+    const last=parts[parts.length-1];
+    return last===val||last===val.padStart(3,'0')||String(parseInt(last))===String(parseInt(val));
+  });
   if(!student){
     showKioskResult('error',`<b>❌ Not found: ${val}</b><br/><span style="font-size:13px;color:#991b1b;">Check your App No on your admit card</span>`);
     inp.select(); inp.focus(); return;
