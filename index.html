@@ -430,6 +430,7 @@ textarea.form-input{resize:vertical;min-height:60px;}
         <div><label class="form-label">Discount (₹)</label><input type="number" id="adm-discount" class="form-input" placeholder="0" value="0" oninput="calcBalance()"/></div>
         <div><label class="form-label">Total Fee (₹) <span style="font-size:10px;color:#94a3b8;">(after discount)</span></label><div id="adm-total-disp" style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:8px;padding:8px 11px;font-size:14px;color:#1d4ed8;font-weight:800;">₹0</div></div>
         <div><label class="form-label">Amount Paid (₹)</label><input type="number" id="adm-paid" class="form-input" placeholder="0" oninput="calcBalance()"/></div>
+        <div><label class="form-label">Payment Mode</label><select id="adm-payment-mode" class="form-select"><option value="Cash">💵 Cash</option><option value="UPI">📱 UPI / GPay / PhonePe</option><option value="Card">💳 Card</option><option value="Bank Transfer">🏦 Bank Transfer</option><option value="Cheque">📝 Cheque</option></select></div>
         <div><label class="form-label">Balance (Auto)</label><div id="adm-bal-disp" style="background:#fef2f2;border:1.5px solid #fca5a544;border-radius:8px;padding:8px 11px;font-size:14px;color:#dc2626;font-weight:800;">₹0</div></div>
         <div><label class="form-label">Fee Due Date</label><input type="date" id="adm-due" class="form-input"/></div>
       </div>
@@ -678,10 +679,10 @@ async function bootApp(){
 // CONFIG & DATA
 // ══════════════════════════════════════════════════
 const ROLE_ACCESS={
-  admin:   ["dashboard","enquiries","students","admissions","balance","attendance","irregular","courses","manage-courses","manage-batches","fees","birthdays","certificates","users","backup","settings"],
-  manager: ["dashboard","enquiries","students","admissions","balance","attendance","irregular","courses","manage-courses","manage-batches","fees","birthdays","certificates"],
+  admin:   ["dashboard","enquiries","students","admissions","balance","attendance","irregular","courses","manage-courses","manage-batches","fees","income","birthdays","certificates","users","backup","settings"],
+  manager: ["dashboard","enquiries","students","admissions","balance","attendance","irregular","courses","manage-courses","manage-batches","fees","income","birthdays","certificates"],
   staff:   ["dashboard","enquiries","students","admissions","attendance"],
-  accounts:["dashboard","fees","balance"]
+  accounts:["dashboard","fees","income","balance"]
 };
 const ROLE_LABELS={admin:"Administrator",manager:"Centre Manager",staff:"Front Desk Staff",accounts:"Accounts"};
 const ROLE_COLORS={admin:"#6366f1",manager:"#0ea5e9",staff:"#f59e0b",accounts:"#10b981"};
@@ -696,6 +697,7 @@ const NAV_ITEMS=[
   {id:"courses",icon:"💻",label:"Courses"},
   {id:"manage-batches",icon:"🕐",label:"Manage Batches"},
   {id:"fees",icon:"🧾",label:"Fee Report"},
+  {id:"income",icon:"📈",label:"Daily Income"},
   {id:"birthdays",icon:"🎂",label:"Birthdays"},
   {id:"certificates",icon:"📜",label:"Certificates"},
   {id:"users",icon:"👥",label:"Users"},
@@ -888,9 +890,9 @@ function buildNav(){
 function navigate(tab){
   activeTab=tab;
   document.querySelectorAll(".nav-btn").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));
-  const lbl={dashboard:"Dashboard Overview",enquiries:"Enquiry Register",students:"Student Register",admissions:"Admission Register",balance:"Fee Balance",attendance:"Attendance",irregular:"Irregular Students",courses:"Course Catalogue","manage-courses":"Manage Courses","manage-batches":"Manage Batches",fees:"Fee Report",birthdays:"Birthday Reminders",certificates:"Certificates",users:"User Management",backup:"Backup & Restore",settings:"Admin Settings"};
+  const lbl={dashboard:"Dashboard Overview",enquiries:"Enquiry Register",students:"Student Register",admissions:"Admission Register",balance:"Fee Balance",attendance:"Attendance",irregular:"Irregular Students",courses:"Course Catalogue","manage-courses":"Manage Courses","manage-batches":"Manage Batches",fees:"Fee Report",income:"Daily Income",birthdays:"Birthday Reminders",certificates:"Certificates",users:"User Management",backup:"Backup & Restore",settings:"Admin Settings"};
   document.getElementById("topbar-title").textContent=lbl[tab]||tab;
-  const R={dashboard:renderDashboard,enquiries:renderEnquiries,students:renderStudents,admissions:renderAdmissions,balance:renderBalance,attendance:renderAttendance,irregular:renderIrregular,courses:renderCourses,'manage-courses':renderManageCourses,'manage-batches':renderManageBatches,fees:renderFees,birthdays:renderBirthdays,certificates:renderCertificates,users:renderUsers,backup:renderBackup,settings:renderSettings};
+  const R={dashboard:renderDashboard,enquiries:renderEnquiries,students:renderStudents,admissions:renderAdmissions,balance:renderBalance,attendance:renderAttendance,irregular:renderIrregular,courses:renderCourses,'manage-courses':renderManageCourses,'manage-batches':renderManageBatches,fees:renderFees,income:renderIncome,birthdays:renderBirthdays,certificates:renderCertificates,users:renderUsers,backup:renderBackup,settings:renderSettings};
   if(R[tab])R[tab]();
 }
 
@@ -1735,6 +1737,83 @@ function renderCourses(){
 }
 
 // ══════════════════════════════════════════════════
+// RENDER — DAILY INCOME
+// ══════════════════════════════════════════════════
+let incomeFromDate='', incomeToDate='';
+function renderIncome(){
+  if(!incomeFromDate) incomeFromDate=new Date(new Date().getFullYear(),new Date().getMonth(),1).toISOString().slice(0,10);
+  if(!incomeToDate) incomeToDate=todayStr();
+  const inRange=ADMISSIONS.filter(a=>a.date>=incomeFromDate&&a.date<=incomeToDate&&a.paid>0);
+  const byDate={};
+  inRange.forEach(a=>{
+    if(!byDate[a.date]) byDate[a.date]={date:a.date,students:[],total:0,cash:0,upi:0,card:0,other:0};
+    byDate[a.date].students.push(a);
+    byDate[a.date].total+=a.paid;
+    const m=(a.paymentMode||'Cash').toLowerCase();
+    if(m.includes('upi')||m.includes('gpay')||m.includes('phone')) byDate[a.date].upi+=a.paid;
+    else if(m.includes('card')) byDate[a.date].card+=a.paid;
+    else if(m.includes('cash')) byDate[a.date].cash+=a.paid;
+    else byDate[a.date].other+=a.paid;
+  });
+  const days=Object.values(byDate).sort((a,b)=>b.date.localeCompare(a.date));
+  const grandTotal=days.reduce((s,d)=>s+d.total,0);
+  const totalCash=days.reduce((s,d)=>s+d.cash,0);
+  const totalUPI=days.reduce((s,d)=>s+d.upi,0);
+  const totalCard=days.reduce((s,d)=>s+d.card,0);
+  const rows=days.map(d=>{
+    const stuList=d.students.map(s=>`<div style="font-size:11px;color:#64748b;padding:2px 0;">${esc(s.name)} — ${esc(s.course)} <span style="color:#16a34a;font-weight:700;">${fmt(s.paid)}</span> <span style="font-size:10px;background:#f1f5f9;border-radius:4px;padding:1px 5px;">${s.paymentMode||'Cash'}</span></div>`).join('');
+    return `<tr>
+      <td class="td-b">${fmtDate(d.date)}</td>
+      <td style="text-align:center;">${d.students.length}</td>
+      <td style="color:#16a34a;font-weight:800;">${fmt(d.total)}</td>
+      <td style="font-size:12px;color:#0ea5e9;">${d.cash?fmt(d.cash):'--'}</td>
+      <td style="font-size:12px;color:#8b5cf6;">${d.upi?fmt(d.upi):'--'}</td>
+      <td style="font-size:12px;color:#f59e0b;">${d.card?fmt(d.card):'--'}</td>
+      <td style="font-size:12px;">${d.other?fmt(d.other):'--'}</td>
+      <td style="font-size:11px;max-width:220px;">${stuList}</td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="8" class="overflow-empty">No income records in this range</td></tr>`;
+  document.getElementById("content").innerHTML=`
+  <div class="page-head"><div><h1 class="page-title">Income Report</h1><p class="page-sub">Payment collection by date</p></div>
+    <button class="btn btn-outline" style="font-size:13px;" onclick="exportIncomeCsv()">Export CSV</button>
+  </div>
+  <div class="card" style="padding:14px 18px;margin-bottom:18px;">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;">
+        <span>From</span><input type="date" value="${incomeFromDate}" class="form-input" style="width:150px;padding:7px 10px;" onchange="incomeFromDate=this.value;renderIncome()"/>
+        <span>To</span><input type="date" value="${incomeToDate}" class="form-input" style="width:150px;padding:7px 10px;" onchange="incomeToDate=this.value;renderIncome()"/>
+      </div>
+      <button class="btn btn-outline" style="font-size:12px;padding:7px 14px;" onclick="incomeFromDate=todayStr();incomeToDate=todayStr();renderIncome()">Today</button>
+      <button class="btn btn-outline" style="font-size:12px;padding:7px 14px;" onclick="incomeFromDate=new Date(new Date().getFullYear(),new Date().getMonth(),1).toISOString().slice(0,10);incomeToDate=todayStr();renderIncome()">This Month</button>
+      <button class="btn btn-outline" style="font-size:12px;padding:7px 14px;" onclick="incomeFromDate=new Date(new Date().getFullYear(),0,1).toISOString().slice(0,10);incomeToDate=todayStr();renderIncome()">This Year</button>
+    </div>
+  </div>
+  <div class="stat-grid" style="margin-bottom:18px;">
+    <div class="stat-card"><div class="st-icon" style="background:#f0fdf4;">💰</div><div><div class="st-val" style="color:#16a34a;">${fmt(grandTotal)}</div><div class="st-lbl">Total Collection</div><div class="st-sub">${inRange.length} payments</div></div></div>
+    <div class="stat-card"><div class="st-icon" style="background:#eff6ff;">💵</div><div><div class="st-val" style="color:#0ea5e9;">${fmt(totalCash)}</div><div class="st-lbl">Cash</div></div></div>
+    <div class="stat-card"><div class="st-icon" style="background:#faf5ff;">📱</div><div><div class="st-val" style="color:#8b5cf6;">${fmt(totalUPI)}</div><div class="st-lbl">UPI / GPay</div></div></div>
+    <div class="stat-card"><div class="st-icon" style="background:#fffbeb;">💳</div><div><div class="st-val" style="color:#f59e0b;">${fmt(totalCard)}</div><div class="st-lbl">Card</div></div></div>
+  </div>
+  <div class="card table-wrap">
+    <table class="data-table" style="min-width:700px;">
+      <thead><tr><th>Date</th><th>Students</th><th>Total</th><th>Cash</th><th>UPI</th><th>Card</th><th>Other</th><th>Details</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+function exportIncomeCsv(){
+  const inRange=ADMISSIONS.filter(a=>a.date>=incomeFromDate&&a.date<=incomeToDate&&a.paid>0).sort((a,b)=>b.date.localeCompare(a.date));
+  let csv='Date,App No,Name,Course,Payment Mode,Amount Paid,Balance\n';
+  inRange.forEach(a=>{csv+=`${a.date},${a.enrollNo},"${a.name}","${a.course}",${a.paymentMode||'Cash'},${a.paid},${a.balance}\n`;});
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('a');
+  link.href=url;link.download='Computech_Income_'+incomeFromDate+'_to_'+incomeToDate+'.csv';
+  link.click();URL.revokeObjectURL(url);
+}
+
+
+// ══════════════════════════════════════════════════
 // RENDER — FEES
 // ══════════════════════════════════════════════════
 function renderFees(){
@@ -2007,6 +2086,7 @@ function openNewAdm(){
   ["adm-name","adm-phone","adm-dob","adm-address","adm-paid","adm-due","adm-email","adm-religion","adm-education","adm-guardian","adm-guardian-phone"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("adm-discount").value="0";
   document.getElementById("adm-appfee").value="100";
+  document.getElementById("adm-payment-mode").value="Cash";
   document.getElementById("adm-nationality").value="Indian";
   // Auto-suggest next enrol number
   const nextNum=String(ADMISSIONS.length+1).padStart(3,"0");
@@ -2035,8 +2115,13 @@ function openEditAdm(id){
   document.getElementById("adm-address").value=a.address||"";
   document.getElementById("adm-course").value=a.course;
   document.getElementById("adm-batch").value=a.batch;
-  document.getElementById("adm-fee").value=a.fee;
-  document.getElementById("adm-paid").value=a.paid;
+  // Load the raw course fee (without appfee) so it doesn't double-add
+  document.getElementById("adm-fee").value=a.courseFee||a.fee||0;
+  document.getElementById("adm-appfee").value=a.appFee!=null?a.appFee:100;
+  document.getElementById("adm-discount").value=a.discount||0;
+  document.getElementById("adm-course2").value=a.course2||"";
+  document.getElementById("adm-paid").value=a.paid||0;
+  document.getElementById("adm-payment-mode").value=a.paymentMode||"Cash";
   document.getElementById("adm-due").value=a.dueDate||"";
   document.getElementById("adm-status").value=a.status;
   calcBalance();openModal("modal-adm");
@@ -2086,6 +2171,8 @@ function saveAdmission(){
     appFee:Number(document.getElementById("adm-appfee")?.value)||100,
     discount:Number(document.getElementById("adm-discount")?.value)||0,
     course2:document.getElementById("adm-course2")?.value||"",
+    courseFee:fee,
+    paymentMode:document.getElementById("adm-payment-mode")?.value||"Cash",
     fee:totalFee,paid,balance,
     dueDate:document.getElementById("adm-due").value,
     status:document.getElementById("adm-status").value
