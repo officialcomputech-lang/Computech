@@ -348,6 +348,7 @@ textarea.form-input{resize:vertical;min-height:60px;}
         <div><label class="form-label">Date</label><input type="date" id="enq-date" class="form-input"/></div>
         <div><label class="form-label">Full Name</label><input type="text" id="enq-name" class="form-input" placeholder="Student name"/></div>
         <div><label class="form-label">Phone</label><input type="tel" id="enq-phone" class="form-input" placeholder="10-digit number"/></div>
+        <div><label class="form-label">Gender</label><select id="enq-gender" class="form-select"><option value="">-- Select --</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
         <div><label class="form-label">Course Interested</label><select id="enq-course" class="form-select"></select></div>
         <div><label class="form-label">Source</label>
           <select id="enq-source" class="form-select"><option>Walk-in</option><option>Phone</option><option>Friend</option><option>Social Media</option><option>Google</option><option>Pamphlet</option><option>Other</option></select>
@@ -401,6 +402,7 @@ textarea.form-input{resize:vertical;min-height:60px;}
       <div class="form-grid">
         <div><label class="form-label">Full Name <span style="color:#ef4444">*</span></label><input type="text" id="adm-name" class="form-input" placeholder="Student full name"/></div>
         <div><label class="form-label">Phone <span style="color:#ef4444">*</span></label><input type="tel" id="adm-phone" class="form-input" placeholder="10-digit mobile"/></div>
+        <div><label class="form-label">Gender</label><select id="adm-gender" class="form-select"><option value="">-- Select --</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
         <div><label class="form-label">Date of Birth</label><input type="date" id="adm-dob" class="form-input"/></div>
         <div><label class="form-label">Email ID</label><input type="email" id="adm-email" class="form-input" placeholder="student@email.com"/></div>
         <div><label class="form-label">Nationality</label><input type="text" id="adm-nationality" class="form-input" placeholder="Indian" value="Indian"/></div>
@@ -438,6 +440,22 @@ textarea.form-input{resize:vertical;min-height:60px;}
       <div class="modal-footer">
         <button class="btn btn-outline" onclick="closeModal('modal-adm')">Cancel</button>
         <button class="btn btn-success" onclick="saveAdmission()">💾 Save Admission</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- RECEIPT MODAL -->
+<div class="modal-overlay" id="modal-receipt">
+  <div class="modal-box xl">
+    <div class="modal-header"><h3>🧾 Payment Receipt</h3><button class="modal-close" onclick="closeModal('modal-receipt')">×</button></div>
+    <div class="modal-body">
+      <div id="receipt-content" style="background:#fff;border-radius:12px;"></div>
+      <div class="modal-footer" style="margin-top:16px;">
+        <button class="btn btn-outline" onclick="closeModal('modal-receipt')">Close</button>
+        <button class="btn btn-wa" onclick="sendReceiptWA()">💬 Send via WhatsApp</button>
+        <button class="btn btn-primary" onclick="printReceipt()">🖨 Print Receipt</button>
       </div>
     </div>
   </div>
@@ -910,6 +928,26 @@ function renderDashboard(){
   const recentEnq=ENQUIRIES.slice(-5).reverse().map(e=>`<tr><td class="td-b">${esc(e.name)}</td><td class="td-m">${esc(e.course)}</td><td>${statusBadge(e.status)}</td></tr>`).join("");
   const courseOcc=COURSES.slice(0,6).map(c=>{const cnt=ADMISSIONS.filter(a=>a.course===c.name).length;const pct=c.seats?Math.round(cnt/c.seats*100):0;const col=pct>80?"#dc2626":pct>50?"#d97706":"#16a34a";return `<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;font-weight:500;"><span>${esc(c.name)}</span><span style="color:#94a3b8">${cnt}/${c.seats}</span></div>${pb(pct,col)}</div>`;}).join("");
   const feeDues=ADMISSIONS.filter(a=>a.balance>0).slice(0,5).map(a=>`<tr><td class="td-b">${esc(a.name)}</td><td class="td-m">${esc(a.course)}</td><td class="td-bad">${fmt(a.balance)}</td><td>${a.dueDate?`<span style="font-size:11px;color:#d97706;">${fmtDate(a.dueDate)}</span>`:"—"}</td></tr>`).join("");
+  // Birthday popup
+  const todayBdayStudents=ADMISSIONS.filter(a=>{
+    if(!a.dob)return false;
+    const dob=new Date(a.dob);
+    const now=new Date();
+    return dob.getDate()===now.getDate()&&dob.getMonth()===now.getMonth();
+  });
+  if(todayBdayStudents.length){
+    setTimeout(()=>{
+      const names=todayBdayStudents.map(a=>a.name).join(", ");
+      const ages=todayBdayStudents.map(a=>{const y=new Date().getFullYear()-new Date(a.dob).getFullYear();return a.name+" ("+y+")"}).join(", ");
+      const popup=document.createElement("div");
+      popup.style.cssText="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:20px;padding:32px 36px;text-align:center;z-index:99999;box-shadow:0 20px 60px rgba(0,0,0,.25);max-width:420px;width:90%;border-top:5px solid #f59e0b;";
+      popup.innerHTML=`<div style="font-size:56px;margin-bottom:12px;">🎂</div><h2 style="font-size:20px;font-weight:900;color:#0f172a;margin-bottom:8px;">Happy Birthday!</h2><p style="font-size:16px;color:#374151;margin-bottom:6px;font-weight:700;">${ages}</p><p style="font-size:13px;color:#94a3b8;margin-bottom:20px;">Wish them a great day! 🎉</p><button onclick="this.closest('div[style]').remove()" style="background:#f59e0b;color:#fff;border:none;border-radius:10px;padding:10px 28px;font-size:14px;font-weight:700;cursor:pointer;width:100%;">🎊 Noted!</button>`;
+      const overlay=document.createElement("div");
+      overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99998;";
+      overlay.onclick=()=>{popup.remove();overlay.remove();};
+      document.body.appendChild(overlay);document.body.appendChild(popup);
+    },600);
+  }
   document.getElementById("content").innerHTML=`
   <!-- QUICK SHARE BANNER -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
@@ -1061,7 +1099,8 @@ function renderStudents(){
 // ══════════════════════════════════════════════════
 // RENDER — ADMISSIONS
 // ══════════════════════════════════════════════════
-function renderAdmissions(){
+function renderAdmissions(){admSearch="";_renderAdmTable();}
+function _renderAdmTable(){
   const filtered=ADMISSIONS.filter(a=>(admFilterState==="All"||a.status===admFilterState)&&(a.name.toLowerCase().includes(admSearch.toLowerCase())||a.phone.includes(admSearch)||a.enrollNo.toLowerCase().includes(admSearch.toLowerCase()))).sort((a,b)=>b.id-a.id);
   const rows=filtered.map(a=>`
     <tr>
@@ -1088,7 +1127,7 @@ function renderAdmissions(){
     </div>
   </div>
   <div class="filter-bar">
-    <input type="search" class="search-inp" placeholder="🔍 Search name, phone or enrol no…" value="${esc(admSearch)}" oninput="admSearch=this.value;renderAdmissions();" style="min-width:240px;"/>
+    <input type="search" class="search-inp" placeholder="🔍 Search name, phone or enrol no…" value="${esc(admSearch)}" oninput="admSearch=this.value;_renderAdmTable();" style="min-width:240px;" value="${esc(admSearch)}"/>
     ${["All","Active","Completed"].map(s=>`<button class="filter-btn ${admFilterState===s?"active":""}" onclick="admFilterState='${s}';renderAdmissions();">${s}</button>`).join("")}
   </div>
   <div class="card table-wrap">
@@ -1102,8 +1141,17 @@ function renderAdmissions(){
 // ══════════════════════════════════════════════════
 // RENDER — BALANCE (with Quick Update by App No)
 // ══════════════════════════════════════════════════
-function renderBalance(){
-  const pending=ADMISSIONS.filter(a=>a.balance>0).sort((a,b)=>b.balance-a.balance);
+function renderBalance(filterFrom,filterTo){
+  let pending=ADMISSIONS.filter(a=>a.balance>0);
+  if(filterFrom||filterTo){
+    pending=pending.filter(a=>{
+      if(!a.dueDate) return !filterFrom&&!filterTo;
+      if(filterFrom&&a.dueDate<filterFrom) return false;
+      if(filterTo&&a.dueDate>filterTo) return false;
+      return true;
+    });
+  }
+  pending=pending.sort((a,b)=>b.balance-a.balance);
   const totalRev=ADMISSIONS.reduce((s,a)=>s+a.paid,0);
   const pendingFee=ADMISSIONS.reduce((s,a)=>s+a.balance,0);
 
@@ -1142,7 +1190,15 @@ function renderBalance(){
   }).join("");
 
   document.getElementById("content").innerHTML=`
-  <div class="page-head"><div><h1 class="page-title">Fee Balance Report</h1><p class="page-sub">Students with pending dues</p></div></div>
+  <div class="page-head" style="flex-wrap:wrap;gap:10px;">
+    <div><h1 class="page-title">Fee Balance Report</h1><p class="page-sub">Students with pending dues</p></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span style="font-size:12px;font-weight:600;color:#64748b;">Due date filter:</span>
+      <input type="date" id="bal-from" class="form-input" style="width:145px;padding:7px 10px;font-size:12px;" placeholder="From" onchange="renderBalanceFiltered()"/>
+      <input type="date" id="bal-to" class="form-input" style="width:145px;padding:7px 10px;font-size:12px;" placeholder="To" onchange="renderBalanceFiltered()"/>
+      <button class="btn btn-outline" style="font-size:12px;padding:7px 12px;" onclick="document.getElementById('bal-from').value='';document.getElementById('bal-to').value='';renderBalance();">Clear</button>
+    </div>
+  </div>
 
   <!-- QUICK UPDATE BY APP NO -->
   <div class="qbu-panel">
@@ -1162,6 +1218,16 @@ function renderBalance(){
     <div class="stat-card"><div class="st-icon" style="background:#eff6ff;">🧾</div><div><div class="st-val" style="color:#3b82f6;">${fmt(totalRev)}</div><div class="st-lbl">Total Collected</div></div></div>
   </div>
   ${pending.length===0?`<div class="card" style="padding:60px;text-align:center;"><div style="font-size:48px;">🎉</div><p style="color:#16a34a;font-weight:700;margin-top:12px;">No pending balances!</p></div>`:cards}`;
+}
+
+function renderBalanceFiltered(){
+  const from=document.getElementById("bal-from")?.value;
+  const to=document.getElementById("bal-to")?.value;
+  // Filter balance cards by due date range
+  const allCards=document.querySelectorAll(".bal-card");
+  // Re-render with filter applied - just call renderBalance with state
+  // We'll store filter and re-render
+  renderBalance(from,to);
 }
 
 function qbuSearch(){
@@ -1205,14 +1271,101 @@ function qbuCalc(){
 function saveQBU(){
   const a=ADMISSIONS.find(x=>x.id===qbuStudentId);if(!a)return;
   const extra=Number(document.getElementById("qbu-amount").value)||0;
+  if(extra<=0){alert("Please enter the amount paid.");return;}
   const newPaid=a.paid+extra;const newBal=Math.max(0,a.fee-newPaid);
   const newDue=document.getElementById("qbu-due").value;
   const qbuUpd={...ADMISSIONS.find(x=>x.id===qbuStudentId),paid:newPaid,balance:newBal,dueDate:newDue};
   ADMISSIONS=ADMISSIONS.map(x=>x.id===qbuStudentId?qbuUpd:x);
   fbSet('admissions',qbuStudentId,qbuUpd);
   closeModal("modal-qbu");renderBalance();buildNav();
-  alert(`✅ Payment updated!\n${a.name}: Paid ${fmt(extra)} · New balance: ${fmt(newBal)}`);
+  // Auto-generate receipt
+  generateReceipt(qbuStudentId,extra);
 }
+
+
+// ══════════════════════════════════════════════════
+// RECEIPT GENERATOR
+// ══════════════════════════════════════════════════
+let _receiptStudent=null, _receiptPayment=0;
+function generateReceipt(studentId, amountPaid){
+  const a=ADMISSIONS.find(x=>x.id===studentId);if(!a)return;
+  _receiptStudent=a;_receiptPayment=amountPaid;
+  const receiptNo="RCP-"+Date.now().toString().slice(-6);
+  const now=new Date();
+  const dateStr=now.toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"});
+  const timeStr=now.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
+  document.getElementById("receipt-content").innerHTML=`
+  <div style="font-family:'Segoe UI',sans-serif;max-width:480px;margin:0 auto;padding:24px;border:2px solid #e2e8f0;border-radius:12px;" id="print-receipt">
+    <!-- Header -->
+    <div style="text-align:center;border-bottom:2px solid #0f172a;padding-bottom:14px;margin-bottom:14px;">
+      <div style="font-size:20px;font-weight:900;color:#0f172a;letter-spacing:2px;">COMPUTECH</div>
+      <div style="font-size:11px;color:#64748b;letter-spacing:2px;">COMPUTER EDUCATION CENTER</div>
+      <div style="font-size:10px;color:#94a3b8;margin-top:2px;">EST. 1999 · ISO 9001:2015 Certified</div>
+    </div>
+    <!-- Receipt Title -->
+    <div style="display:flex;justify-content:space-between;margin-bottom:14px;">
+      <div><div style="font-size:16px;font-weight:900;color:#0f172a;">PAYMENT RECEIPT</div><div style="font-size:11px;color:#94a3b8;margin-top:2px;">Receipt No: <b>${receiptNo}</b></div></div>
+      <div style="text-align:right;"><div style="font-size:12px;color:#64748b;">${dateStr}</div><div style="font-size:11px;color:#94a3b8;">${timeStr}</div></div>
+    </div>
+    <!-- Student Info -->
+    <div style="background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:14px;border-left:3px solid #3b82f6;">
+      <div style="font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:1px;margin-bottom:6px;">STUDENT DETAILS</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">
+        <div><span style="color:#64748b;">Name:</span> <b>${esc(a.name)}</b></div>
+        <div><span style="color:#64748b;">App No:</span> <b>${a.enrollNo}</b></div>
+        <div><span style="color:#64748b;">Course:</span> <b>${esc(a.course)}</b></div>
+        <div><span style="color:#64748b;">Batch:</span> <b>${a.batch}</b></div>
+        <div><span style="color:#64748b;">Phone:</span> <b>${a.phone}</b></div>
+        ${a.paymentMode?`<div><span style="color:#64748b;">Payment Mode:</span> <b>${a.paymentMode}</b></div>`:""}
+      </div>
+    </div>
+    <!-- Payment Summary -->
+    <div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:14px;">
+      <div style="background:#0f172a;color:#fff;padding:8px 14px;font-size:11px;font-weight:700;letter-spacing:1px;">PAYMENT SUMMARY</div>
+      <div style="padding:12px 14px;">
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:13px;"><span style="color:#64748b;">Total Course Fee</span><span style="font-weight:600;">${fmt(a.fee)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:13px;"><span style="color:#64748b;">Previously Paid</span><span style="font-weight:600;color:#16a34a;">${fmt(a.paid-amountPaid)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:2px solid #0f172a;font-size:15px;font-weight:800;"><span style="color:#0f172a;">Amount Paid Today</span><span style="color:#16a34a;">${fmt(amountPaid)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14px;font-weight:800;">
+          <span style="color:#0f172a;">Balance Due</span>
+          <span style="color:${a.balance>0?"#dc2626":"#16a34a"};">${a.balance>0?fmt(a.balance):"✓ FULLY PAID"}</span>
+        </div>
+        ${a.dueDate&&a.balance>0?`<div style="font-size:11px;color:#d97706;text-align:right;margin-top:2px;">Due date: ${fmtDate(a.dueDate)}</div>`:""}
+      </div>
+    </div>
+    <div style="text-align:center;font-size:10px;color:#94a3b8;border-top:1px dashed #e2e8f0;padding-top:10px;">
+      Thank you for your payment! · Computech CEC · Learn · Believe · Achieve
+    </div>
+  </div>`;
+  openModal("modal-receipt");
+}
+
+function sendReceiptWA(){
+  if(!_receiptStudent)return;
+  const a=_receiptStudent;
+  const msg="🧾 *PAYMENT RECEIPT*\n*Computech Computer Education Center*\n\n"+
+    "Student: *"+a.name+"*\n"+
+    "App No: *"+a.enrollNo+"*\n"+
+    "Course: "+a.course+"\n"+
+    "Batch: "+a.batch+"\n\n"+
+    "━━━━━━━━━━━━━━\n"+
+    "Amount Paid: *"+fmt(_receiptPayment)+"*\n"+
+    "Total Fee: "+fmt(a.fee)+"\n"+
+    "Balance Due: *"+(a.balance>0?fmt(a.balance):"✓ Fully Paid")+"*\n"+
+    (a.dueDate&&a.balance>0?"Due Date: "+fmtDate(a.dueDate)+"\n":"")+
+    "━━━━━━━━━━━━━━\n\n"+
+    "Thank you! For queries call Computech CEC.";
+  window.open(waUrl(a.phone,msg),"_blank");
+}
+
+function printReceipt(){
+  const content=document.getElementById("print-receipt");
+  if(!content)return;
+  const w=window.open("","_blank","width=600,height=700");
+  w.document.write(`<!DOCTYPE html><html><head><title>Receipt</title><style>*{box-sizing:border-box;}body{font-family:'Segoe UI',sans-serif;padding:20px;background:#fff;}@media print{body{padding:0;}}</style></head><body>${content.outerHTML}<script>window.print();<\/script></body></html>`);
+  w.document.close();
+}
+
 
 // ══════════════════════════════════════════════════
 // RENDER — ATTENDANCE (General QR + self-entry)
@@ -2003,6 +2156,7 @@ function openNewEnq(){
   document.getElementById("enq-modal-title").textContent="New Enquiry";
   document.getElementById("enq-date").value=todayStr();
   ["enq-name","enq-phone","enq-address","enq-notes"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("enq-gender").value="";
   document.getElementById("enq-course").value=COURSES[0].name;
   document.getElementById("enq-source").value="Walk-in";
   document.getElementById("enq-status").value="Pending";
@@ -2018,6 +2172,7 @@ function openEditEnq(id){
   document.getElementById("enq-date").value=e.date;
   document.getElementById("enq-name").value=e.name;
   document.getElementById("enq-phone").value=e.phone;
+  document.getElementById("enq-gender").value=e.gender||"";
   document.getElementById("enq-course").value=e.course;
   document.getElementById("enq-source").value=e.source;
   document.getElementById("enq-status").value=e.status;
@@ -2038,7 +2193,7 @@ function saveEnquiry(){
   const name=document.getElementById("enq-name").value.trim();
   const phone=document.getElementById("enq-phone").value.trim();
   if(!name||!phone){alert("Name and phone required.");return;}
-  const obj={date:document.getElementById("enq-date").value,name,phone,course:document.getElementById("enq-course").value,source:document.getElementById("enq-source").value,status:document.getElementById("enq-status").value,batch:document.getElementById("enq-batch").value,mode:document.getElementById("enq-mode").value,address:document.getElementById("enq-address").value.trim(),notes:document.getElementById("enq-notes").value.trim()};
+  const obj={date:document.getElementById("enq-date").value,name,phone,gender:document.getElementById("enq-gender")?.value||"",course:document.getElementById("enq-course").value,source:document.getElementById("enq-source").value,status:document.getElementById("enq-status").value,batch:document.getElementById("enq-batch").value,mode:document.getElementById("enq-mode").value,address:document.getElementById("enq-address").value.trim(),notes:document.getElementById("enq-notes").value.trim()};
   if(editingEnqId){const eu={...obj,id:editingEnqId};ENQUIRIES=ENQUIRIES.map(e=>e.id===editingEnqId?eu:e);fbSet('enquiries',editingEnqId,eu);}
   else{
     const nid=Date.now();const ne={...obj,id:nid};ENQUIRIES.push(ne);fbSet('enquiries',nid,ne);
@@ -2084,6 +2239,7 @@ function openNewAdm(){
   document.getElementById("adm-modal-title").textContent="New Admission";
   document.getElementById("adm-date").value=todayStr();
   ["adm-name","adm-phone","adm-dob","adm-address","adm-paid","adm-due","adm-email","adm-religion","adm-education","adm-guardian","adm-guardian-phone"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("adm-gender").value="";
   document.getElementById("adm-discount").value="0";
   document.getElementById("adm-appfee").value="100";
   document.getElementById("adm-payment-mode").value="Cash";
@@ -2103,6 +2259,7 @@ function openEditAdm(id){
   document.getElementById("adm-modal-title").textContent="Edit Admission";
   document.getElementById("adm-date").value=a.date;
   document.getElementById("adm-name").value=a.name;
+  document.getElementById("adm-gender").value=a.gender||"";
   const parts=a.enrollNo.split("-");document.getElementById("adm-enrol-num").value=parts[parts.length-1]||"";
   document.getElementById("adm-phone").value=a.phone;
   document.getElementById("adm-dob").value=a.dob||"";
@@ -2159,6 +2316,7 @@ function saveAdmission(){
     date:document.getElementById("adm-date").value,
     name,phone,
     dob:document.getElementById("adm-dob").value,
+    gender:document.getElementById("adm-gender")?.value||"",
     email:document.getElementById("adm-email").value.trim(),
     nationality:document.getElementById("adm-nationality").value.trim(),
     religion:document.getElementById("adm-religion").value.trim(),
